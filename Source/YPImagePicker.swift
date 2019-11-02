@@ -17,6 +17,7 @@ public protocol YPImagePickerDelegate: AnyObject {
 open class YPImagePicker: UINavigationController {
     
     private var _didFinishPicking: (([YPMediaItem], Bool) -> Void)?
+    private var deviceOrientationHelper = DeviceOrientationHelper()
     public func didFinishPicking(completion: @escaping (_ items: [YPMediaItem], _ cancelled: Bool) -> Void) {
         _didFinishPicking = completion
     }
@@ -30,6 +31,7 @@ open class YPImagePicker: UINavigationController {
     // This keeps the backwards compatibility keeps the api as simple as possible.
     // Multiple selection becomes available as an opt-in.
     private func didSelect(items: [YPMediaItem]) {
+        deviceOrientationHelper.stopDeviceOrientationNotifier()
         _didFinishPicking?(items, false)
     }
     
@@ -47,13 +49,17 @@ open class YPImagePicker: UINavigationController {
         picker = YPPickerVC()
         super.init(nibName: nil, bundle: nil)
         picker.imagePickerDelegate = self
+
+        deviceOrientationHelper.startDeviceOrientationNotifier { (deviceOrientation) in
+            
+        }
     }
     
     public required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-override open func viewDidLoad() {
+    override open func viewDidLoad() {
         super.viewDidLoad()
         picker.didClose = { [weak self] in
             self?._didFinishPicking?([], true)
@@ -88,6 +94,12 @@ override open func viewDidLoad() {
             let item = items.first!
             switch item {
             case .photo(let photo):
+                if UIDevice.current.orientation == UIDeviceOrientation.landscapeLeft || UIDevice.current.orientation == UIDeviceOrientation.landscapeRight {
+                    photo.orientation = 1
+                } else {
+                    photo.orientation = self!.deviceOrientationHelper.currentDeviceOrientation.rawValue
+                }
+                
                 let completion = { (photo: YPMediaPhoto) in
                     let mediaItem = YPMediaItem.photo(p: photo)
                     // Save new image or existing but modified, to the photo album.
@@ -161,6 +173,7 @@ override open func viewDidLoad() {
 
 extension YPImagePicker: ImagePickerDelegate {
     func noPhotos() {
+        self.deviceOrientationHelper.stopDeviceOrientationNotifier()
         self.imagePickerDelegate?.noPhotos()
     }
 }
