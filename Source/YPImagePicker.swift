@@ -98,6 +98,12 @@ open class YPImagePicker: UINavigationController {
                     photo.orientation = 1
                 } else {
                     photo.orientation = self!.deviceOrientationHelper.currentDeviceOrientation.rawValue
+
+                    if (photo.orientation == 3) {
+                        photo.originalImage = photo.image.rotate(radians: .pi/2)
+                    } else if (photo.orientation == 4) {
+                        photo.originalImage = photo.image.rotate(radians: 3*(.pi/2))
+                    }
                 }
                 
                 let completion = { (photo: YPMediaPhoto) in
